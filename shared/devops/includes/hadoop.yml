@@ -1,0 +1,191 @@
+
+- group:
+    name: hadoop
+    state: present
+
+- user:
+    name: hadoop
+    shell: /bin/bash
+    group: hadoop
+    generate_ssh_key: yes
+
+- user:
+    name: vagrant
+    groups: hadoop
+    append: yes
+
+- name: append key to authorized_keys
+  shell: (cat /home/hadoop/.ssh/id_rsa.pub > /home/hadoop/.ssh/authorized_keys && chmod 600 /home/hadoop/.ssh/authorized_keys)
+  become_user: hadoop
+
+
+- name: ssh-keyscan the git server
+  shell: ssh-keyscan -t rsa 'localhost (127.0.0.1)' >> ~/.ssh/known_hosts 2>&1
+  become_user: hadoop
+
+- name: ssh-keyscan the git server
+  shell: ssh-keyscan -t rsa localhost >> ~/.ssh/known_hosts 2>&1
+  become_user: hadoop
+
+- name: ssh-keyscan the git server
+  shell: ssh-keyscan -t rsa 0.0.0.0 >> ~/.ssh/known_hosts 2>&1
+  become_user: hadoop
+
+- name: Disable IpV6
+  blockinfile:
+    dest: /etc/sysctl.conf
+    marker: "# {mark} ANSIBLE MANAGED IPV6 BLOCK "
+    content: |
+      net.ipv6.conf.all.disable_ipv6 = 1
+      net.ipv6.conf.default.disable_ipv6 = 1
+      net.ipv6.conf.lo.disable_ipv6 = 1
+
+- name: Apply system changes
+  shell:  sysctl --system
+
+- name: download Hadoop release {{ hadoop_release }}
+  get_url:
+    url: 'http://ftp.ps.pl/pub/apache/hadoop/core/{{ hadoop_release }}/{{ hadoop_archive }}'
+    dest: '/home/vagrant/{{ hadoop_archive }}'
+    sha256sum: '{{ hadoop_sha256 }}'
+
+- name: Unarchive the Hadoop tar
+  unarchive:
+    src: '/home/vagrant/{{ hadoop_archive }}'
+    dest: /srv
+
+- name: Recursively chown and chmod
+  shell: (chown -R hadoop:hadoop /srv/{{ hadoop_release }} && chmod g+w -R /srv/{{ hadoop_release }})
+
+- name: Create required symbolic link
+  file:
+    src: /srv/{{ hadoop_release }}
+    dest: /srv/hadoop
+    state: link
+
+- name: Add env vars to hadoop .bashrc
+  blockinfile:
+    dest: /home/hadoop/.bashrc
+    marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
+    content: |
+      # Set the Hadoop Related Environment variables
+      export HADOOP_HOME=/srv/hadoop
+      export PATH=$PATH:$HADOOP_HOME/bin
+      # Set the JAVA_HOME
+      export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      # Configure Hive environment
+      export HIVE_HOME=/srv/hive
+      export PATH=$PATH:$HIVE_HOME/bin
+      # Configure Spark
+      export SPARK_HOME=/srv/spark
+      export PATH=$SPARK_HOME/bin:$PATH
+
+- name:  Add JAVA_HOME to hadoop-env.sh
+  lineinfile:
+    dest: /srv/hadoop/etc/hadoop/hadoop-env.sh
+    regexp: 'export JAVA_HOME=\${JAVA_HOME}'
+    line: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+
+- name: Add env vars to vagrant .profile
+  blockinfile:
+    dest: /home/vagrant/.profile
+    marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
+    content: |
+      # Set the Hadoop Related Environment variables
+      export HADOOP_HOME=/srv/hadoop
+      export PATH=$PATH:$HADOOP_HOME/bin
+      export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar
+      # Set the JAVA_HOME
+      export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      # Configure Hive environment
+      export HIVE_HOME=/srv/hive
+      export PATH=$PATH:$HIVE_HOME/bin
+      # Configure Spark
+      export SPARK_HOME=/srv/spark
+      export PATH=$SPARK_HOME/bin:$PATH
+
+- name: Replace config files
+  template:
+    src: /home/vagrant/shared/devops/templates/{{ item.src }}
+    dest: /srv/hadoop/etc/hadoop/{{ item.dest }}
+    mode: 0644
+    owner: hadoop
+    group: hadoop
+  with_items:
+    - src: hadoop-core-site.xml.j2
+      dest: core-site.xml
+    - src: hadoop-mapred-site.xml.j2
+      dest: mapred-site.xml
+    - src: hadoop-hdfs-site.xml.j2
+      dest: hdfs-site.xml
+    - src: hadoop-yarn-site.xml.j2
+      dest: yarn-site.xml
+
+
+- name: Add directory for namenode files
+  file:
+    path: /var/app/hadoop
+    state: directory
+    group: hadoop
+    owner: hadoop
+
+- name: Add directory for namenode files
+  file:
+    path: /var/app/hadoop/data
+    state: directory
+    group: hadoop
+    owner: hadoop
+
+- name: source the .bashrc
+  shell: (source /home/hadoop/.bashrc)
+  become: vagrant
+  args:
+    executable: /bin/bash
+
+- name: source the .profile
+  shell: (source /home/vagrant/.profile)
+  become: vagrant
+  args:
+    executable: /bin/bash
+
+- name: start hadoop
+  shell: sudo -u hadoop /srv/hadoop/sbin/start-dfs.sh
+  become: vagrant
+
+- name: start yarn
+  shell: sudo -u hadoop /srv/hadoop/sbin/start-yarn.sh
+  become: vagrant
+
+- name: Check for tell-tale signs of namenode format
+  stat:
+    path: /var/app/hadoop/data/dfs/name/current/VERSION
+  register: hdfs_VERSION
+
+
+- name: Format the "/var/app/hadoop" directory
+  shell: sudo -u hadoop /srv/hadoop/bin/hdfs namenode -format
+  environment:
+    JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  when: hdfs_VERSION.stat.exists == False
+  become: vagrant
+
+- name: Add directory for namenode files
+  file:
+    path: /var/app/hadoop
+    state: directory
+    group: hadoop
+    owner: hadoop
+    recurse: yes
+
+
+- name: start hadoop
+  shell: sudo -u hadoop /srv/hadoop/sbin/start-dfs.sh
+  become: vagrant
+
+- name: start yarn
+  shell: sudo -u hadoop /srv/hadoop/sbin/start-yarn.sh
+  become: vagrant
+
+- name: create a hdfs space for vagrant user
+  shell: (sudo -u hadoop /srv/hadoop/bin/hdfs dfs -mkdir -p /user/vagrant && sudo -u hadoop /srv/hadoop/bin/hdfs dfs -chown vagrant:vagrant /user/vagrant)
+  become: vagrant

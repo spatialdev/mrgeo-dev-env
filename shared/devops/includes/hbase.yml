@@ -1,0 +1,77 @@
+#
+#  - name: download HBase release {{ hbase_release }}
+#    get_url:
+#      url: 'http://archive.apache.org/dist/hbase/{{ hbase_release }}/{{ hbase_archive }}'
+#      dest: '/home/vagrant/{{ hbase_archive }}'
+#      checksum: "md5:{{ hbase_md5 }}"
+#
+#  - name: Unarchive the HBase tar
+#    unarchive:
+#      src: '/home/vagrant/{{ hbase_archive }}'
+#      dest: /srv
+#
+#  - name: Recursively chown and chmod
+#    shell: (chown -R hadoop:hadoop {{ hbase_home_dir }} && chmod g+w -R {{ hbase_home_dir }})
+#
+#  - name: create HBase data directories
+#    file:
+#      path: /var/app/hbase
+#      state: directory
+#      owner: hadoop
+#      group: hadoop
+#
+#  - name: create ZooKeeper data directories
+#    file:
+#      path: /var/app/zk
+#      state: directory
+#      owner: hadoop
+#      group: hadoop
+#
+#  - name: Create required symbolic link
+#    file:
+#      src: "{{ hbase_home_dir }}"
+#      dest: /srv/hbase
+#      state: link
+#      owner: hadoop
+#      group: hadoop
+#
+#  - name: write HBase config file
+#    template:
+#      src: /home/vagrant/shared/devops/templates/hbase-site.xml.j2
+#      dest: '{{ hbase_home_dir }}/conf/hbase-site.xml'
+#
+#  - name: set JAVA_HOME environment variable for HBase
+#    lineinfile:
+#      dest: '{{ hbase_home_dir }}/conf/hbase-env.sh'
+#      regexp: '^#?\s*export JAVA_HOME='
+#      line: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre
+#      state: present
+#
+#  - name: explicitly tell HBase to manage Zookeeper
+#    lineinfile:
+#      dest: '{{ hbase_home_dir }}/conf/hbase-env.sh'
+#      regexp: '^#?\s*export HBASE_MANAGES_ZK='
+#      line: 'export HBASE_MANAGES_ZK=true'
+#      state: present
+#
+#  - name: check if HBASE and Thrift are running
+#    command: jps
+#    register: jps_result
+#
+#  - name: start HBase
+#    command: sudo -u hadoop ./start-hbase.sh
+#    args:
+#      chdir: "{{ hbase_home_dir }}/bin"
+#    register: hbase_start
+#    changed_when: hbase_start.stdout.find('starting master') == -1
+#    when: '"HRegionServer" not in jps_result.stdout'
+#    become: vagrant
+#
+#  - name: start Thrift server
+#    command: sudo -u hadoop ./hbase-daemon.sh start thrift
+#    args:
+#      chdir: "{{ hbase_home_dir }}/bin"
+#    register: thrift_start
+#    changed_when: thrift_start.stdout.find('starting thrift') == -1
+#    when: '"ThriftServer" not in jps_result.stdout'
+#    become: vagrant

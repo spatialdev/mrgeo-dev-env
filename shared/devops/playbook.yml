@@ -1,0 +1,128 @@
+- name: Provision the Vagrant machine
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+
+  vars:
+#    spark_source_archive: /home/vagrant/shared/devops/spark-2.1.0.tgz
+#    spark_version: spark-2.1.0
+#    spark_submit_binary_path: /usr/local/share/spark/{{ spark_version }}/bin
+
+
+    hadoop_release: hadoop-2.6.0
+    hadoop_archive: '{{ hadoop_release }}.tar.gz'
+    hadoop_sha256: '7a2ef6e7f468afcae95d0f7214816033c7e5c7982454061ccb117896d58d279f'
+
+    zookeeper_archive_url: http://apache.org/dist/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
+    zookeeper_release: zookeeper-3.4.9
+    zookeeper_md5: 3e8506075212c2d41030d874fcc9dcd2
+    zookeeper_data_dir: /var/app/zookeeper
+
+    hbase_release: 1.2.4
+    hbase_archive: 'hbase-{{ hbase_release }}-bin.tar.gz'
+    hbase_md5: '26 CF 30 B9 FC 01 16 7B  A9 8F C6 37 E8 60 6D 5C'
+    hbase_home_dir: '/srv/hbase-{{ hbase_release }}'
+    hbase_data_dir: /var/app/hbase
+
+
+  tasks:
+
+  - name: Add a directory for Ansible callback plugins
+    file: path=/usr/share/ansible/plugins/callback state=directory
+
+  - name: Add module to create human readable output
+    template:
+      src: /home/vagrant/shared/devops/human_log.py
+      dest: /usr/share/ansible/plugins/callback
+
+  - name: Add pretty-print module to Ansible
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
+      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
+      content: |
+        callback_plugins   = /usr/share/ansible/plugins/callback
+
+  - name: Prevent 'retry' file creation
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
+      insertbefore: "#retry_files_enabled = False"
+      content: |
+        retry_files_enabled = False
+
+  - name: ensure apt cache is up to date
+    apt: update_cache=yes cache_valid_time=86400
+
+  - name: dist-upgrade
+    apt: upgrade=dist cache_valid_time=86400
+
+  - name: Ensure required packages are installed
+    apt: name={{item}}
+    with_items:
+      - git
+      - tree
+      - curl
+      - build-essential
+      - ssh
+      - lzop
+      - rsync
+      - python-dev
+      - python-setuptools
+      - libcurl4-openssl-dev
+      - python-pip
+      - default-jdk
+
+  - name: 'Pip installs'
+    pip:
+      name: "{{ item}}"
+    with_items:
+      - virtualenv
+      - virtualenvwrapper
+      - python-dateutil
+
+
+  - name: Add aliases vagrant .profile
+    blockinfile:
+      dest: /home/vagrant/.profile
+      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
+      content: |
+        # Set the Hadoop Related Environment variables
+        export DOPS=/home/vagrant/shared/devops
+
+
+#  - name: install Hadoop
+#    include: includes/hadoop.yml
+
+#  - name: install Zookeeper
+#    include: includes/zookeeper.yml
+#
+  - name: Get Zookeeper release {{ zookeeper_release }}
+    get_url:
+      url: '{{ zookeeper_archive_url }}'
+      dest: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
+      checksum: 'md5:{{ zookeeper_md5 }}'
+
+  - name: Unarchive the Zookeeper tar
+    unarchive:
+      src: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
+      dest: /srv
+
+  - name: create ZooKeeper data directories
+    file:
+      path: '{{ zookeeper_data_dir }}'
+      state: directory
+      owner: hadoop
+      group: hadoop
+
+  - name: make Zookeeper conf file
+    template:
+      src: /home/vagrant/shared/devops/templates/zoo.cfg.j2
+      dest: /srv/{{ zookeeper_release }}/conf/zoo.cfg
+      mode: 0644
+      owner: hadoop
+      group: hadoop
+
+#  - name: install Spark
+#    include: includes/spark.yml
