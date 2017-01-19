@@ -1,0 +1,84 @@
+- name: Get Accumulo release {{ accumulo_release }}
+  get_url:
+    url: '{{ accumulo_archive_url }}'
+    dest: '/home/vagrant/{{ accumulo_release }}.tar.gz'
+    checksum: 'md5:{{ accumulo_md5 }}'
+
+- name: Unarchive the Accumulo tar
+  unarchive:
+    src: '/home/vagrant/{{ accumulo_release }}.tar.gz'
+    dest: /srv
+
+- name: Copy conf file example
+  copy:
+    src: /srv/accumulo/conf/examples/512MB/standalone/
+    directory_mode: yes
+    dest: /srv/accumulo/conf/
+    owner: hadoop
+    group: hadoop
+
+- name: Create required symbolic link
+  file:
+    src: /srv/{{ accumulo_release }}
+    dest: /srv/accumulo
+    state: link
+    owner: hadoop
+    group: hadoop
+
+- name: Recursively chown and chmod
+  shell: '{{ item }}'
+  with_items:
+    - chown -R hadoop:hadoop /srv/{{ accumulo_release }}
+    - chown -R hadoop:hadoop /srv/{{ accumulo_release }}/*
+    - chown -R hadoop:hadoop /srv/accumulo
+    - chmod g+w -R /srv/{{ accumulo_release }}
+
+- name: make adjustment to accumulo-env.sh
+  lineinfile:
+    dest: /srv/accumulo/conf/accumulo-env.sh
+    regexp: '# export ACCUMULO_MONITOR_BIND_ALL="true"'
+    line: 'export ACCUMULO_MONITOR_BIND_ALL="true"'
+
+- name: Add env vars to hadoop .bashrc
+  blockinfile:
+    dest: /home/hadoop/.bashrc
+    marker: "# {mark} ANSIBLE MANAGED ACCUMULO BLOCK "
+    content: |
+      export ACCUMULO_HOME=/srv/accumulo
+      export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+
+- name: Add env vars to vagrant .profile
+  blockinfile:
+    dest: /home/vagrant/.profile
+    marker: "# {mark} ANSIBLE MANAGED ACCUMULO BLOCK "
+    content: |
+      export ACCUMULO_HOME=/srv/accumulo
+      export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+
+- name: source the .bashrc
+  shell: (source /home/hadoop/.bashrc)
+  become: hadoop
+  args:
+    executable: /bin/bash
+
+- name: source the .profile
+  shell: (source /home/vagrant/.profile)
+  become: vagrant
+  args:
+    executable: /bin/bash
+
+- name: make Accumulo conf file
+  template:
+    src: /home/vagrant/shared/devops/templates/accumulo-site.xml.j2
+    dest: /srv/accumulo/conf/accumulo-site.xml
+    mode: 0644
+    owner: hadoop
+    group: hadoop
+
+- name: Initialize Accumulo
+  shell: sudo -u hadoop $ACCUMULO_HOME/bin/accumulo init --instance-name stratus --password lenticular
+  become: vagrant
+
+- name: Start Accumulo
+  shell: sudo -u hadoop $ACCUMULO_HOME/bin/start-all.sh
+  become: vagrant

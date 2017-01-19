@@ -5,10 +5,10 @@
   gather_facts: yes
 
   vars:
-#    spark_source_archive: /home/vagrant/shared/devops/spark-2.1.0.tgz
-#    spark_version: spark-2.1.0
-#    spark_submit_binary_path: /usr/local/share/spark/{{ spark_version }}/bin
 
+    spark_release: spark-2.1.0-bin-hadoop2.6
+    spark_archive_url: http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.6.tgz
+    spark_md5: 'md5:18 67 65 A9 58 38 60 2E  D8 1E A4 E9 27 05 61 F8'
 
     hadoop_release: hadoop-2.6.0
     hadoop_archive: '{{ hadoop_release }}.tar.gz'
@@ -18,6 +18,11 @@
     zookeeper_release: zookeeper-3.4.9
     zookeeper_md5: 3e8506075212c2d41030d874fcc9dcd2
     zookeeper_data_dir: /var/app/zookeeper
+
+    accumulo_archive_url: http://mirrors.sonic.net/apache/accumulo/1.8.0/accumulo-1.8.0-bin.tar.gz
+    accumulo_release: accumulo-1.8.0
+    accumulo_md5: c094d8d61ce8c0bf787fae4b54c7c49a
+    accumulo_secret: nimbus
 
     hbase_release: 1.2.4
     hbase_archive: 'hbase-{{ hbase_release }}-bin.tar.gz'
@@ -82,47 +87,21 @@
       - virtualenvwrapper
       - python-dateutil
 
-
   - name: Add aliases vagrant .profile
     blockinfile:
       dest: /home/vagrant/.profile
       marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
       content: |
-        # Set the Hadoop Related Environment variables
         export DOPS=/home/vagrant/shared/devops
 
+  - name: install Hadoop
+    include: includes/hadoop.yml
 
-#  - name: install Hadoop
-#    include: includes/hadoop.yml
+  - name: install Zookeeper
+    include: includes/zookeeper.yml
 
-#  - name: install Zookeeper
-#    include: includes/zookeeper.yml
-#
-  - name: Get Zookeeper release {{ zookeeper_release }}
-    get_url:
-      url: '{{ zookeeper_archive_url }}'
-      dest: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
-      checksum: 'md5:{{ zookeeper_md5 }}'
+  - name: install Accumulo
+    include: includes/accumulo.yml
 
-  - name: Unarchive the Zookeeper tar
-    unarchive:
-      src: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
-      dest: /srv
-
-  - name: create ZooKeeper data directories
-    file:
-      path: '{{ zookeeper_data_dir }}'
-      state: directory
-      owner: hadoop
-      group: hadoop
-
-  - name: make Zookeeper conf file
-    template:
-      src: /home/vagrant/shared/devops/templates/zoo.cfg.j2
-      dest: /srv/{{ zookeeper_release }}/conf/zoo.cfg
-      mode: 0644
-      owner: hadoop
-      group: hadoop
-
-#  - name: install Spark
-#    include: includes/spark.yml
+  - name: install Spark
+    include: includes/spark.yml

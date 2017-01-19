@@ -1,26 +1,32 @@
 
 - name: download Spark release 2.1.0
   get_url:
-    url: 'http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.6.tgz'
-    dest: '/home/vagrant/spark-2.1.0-bin-hadoop2.6.tgz'
-    checksum: "md5:18 67 65 A9 58 38 60 2E  D8 1E A4 E9 27 05 61 F8"
+    url: '{{ spark_archive_url }}'
+    dest: '/home/vagrant/{{ spark_release }}.tgz'
+    checksum: '{{ spark_md5 }}'
 
 - name: Unarchive the Spark tar
   unarchive:
-    src: '/home/vagrant/spark-2.1.0-bin-hadoop2.6.tgz'
+    src: '/home/vagrant/{{ spark_release }}.tgz'
     dest: /srv
-
-- name: Recursively chown and chmod
-  shell: (chown -R hadoop:hadoop /srv/spark-2.1.0-bin-hadoop2.6 && chmod g+w -R /srv/spark-2.1.0-bin-hadoop2.6)
+    owner: hadoop
+    group: hadoop
 
 - name: Create required symbolic link
   file:
-    src: /srv/spark-2.1.0-bin-hadoop2.6
+    src: /srv/{{ spark_release }}
     dest: /srv/spark
     state: link
     owner: hadoop
     group: hadoop
 
+- name: Recursively chown and chmod
+  shell: '{{ item }}'
+  with_items:
+    - chown -R hadoop:hadoop /srv/{{ spark_release }}
+    - chown -R hadoop:hadoop /srv/{{ spark_release }}/*
+    - chown -R hadoop:hadoop /srv/spark
+    - chmod g+w -R /srv/{{ spark_release }}
 
 - name: write Hive config file
   template:

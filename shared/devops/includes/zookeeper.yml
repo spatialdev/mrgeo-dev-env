@@ -1,0 +1,84 @@
+- name: Get Zookeeper release {{ zookeeper_release }}
+  get_url:
+    url: '{{ zookeeper_archive_url }}'
+    dest: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
+    checksum: 'md5:{{ zookeeper_md5 }}'
+
+- name: Unarchive the Zookeeper tar
+  unarchive:
+    src: '/home/vagrant/{{ zookeeper_release }}.tar.gz'
+    dest: /srv
+
+- name: Create required symbolic link
+  file:
+    src: /srv/{{ zookeeper_release }}
+    dest: /srv/zookeeper
+    state: link
+    owner: hadoop
+    group: hadoop
+
+- name: Recursively chown and chmod
+  shell: (chown -R hadoop:hadoop /srv/zookeeper/* && chmod g+w -R /srv/zookeeper)
+
+- name: create ZooKeeper data directories
+  file:
+    path: '{{ zookeeper_data_dir }}'
+    state: directory
+    owner: hadoop
+    group: hadoop
+
+- name: Recursively chown and chmod
+  shell: (chown -R hadoop:hadoop /srv/{{ zookeeper_release }} && chown -R hadoop:hadoop /srv/{{ zookeeper_release }}/* && chmod g+w -R /srv/zookeeper)
+
+- name: Recursively chown and chmod
+  shell: '{{ item }}'
+  with_items:
+    - chown -R hadoop:hadoop /srv/{{ zookeeper_release }}
+    - chown -R hadoop:hadoop /srv/{{ zookeeper_release }}/*
+    - chown -R hadoop:hadoop /srv/zookeeper
+    - chmod g+w -R /srv/{{ zookeeper_release }}
+
+- name: make Zookeeper conf file
+  template:
+    src: /home/vagrant/shared/devops/templates/zoo.cfg.j2
+    dest: /srv/zookeeper/conf/zoo.cfg
+    mode: 0644
+    owner: hadoop
+    group: hadoop
+
+- name: Add env vars to hadoop .bashrc
+  blockinfile:
+    dest: /home/hadoop/.bashrc
+    marker: "# {mark} ANSIBLE MANAGED ZOOKEEPER BLOCK "
+    content: |
+      export ZOOKEEPER_HOME=/srv/zookeeper
+
+- name: Add env vars to vagrant .profile
+  blockinfile:
+    dest: /home/vagrant/.profile
+    marker: "# {mark} ANSIBLE MANAGED ZOOKEEPER BLOCK "
+    content: |
+      export ZOOKEEPER_HOME=/srv/zookeeper
+
+- name: source the .bashrc
+  shell: (source /home/hadoop/.bashrc)
+  become: hadoop
+  args:
+    executable: /bin/bash
+
+- name: source the .profile
+  shell: (source /home/vagrant/.profile)
+  become: vagrant
+  args:
+    executable: /bin/bash
+
+- name: Add directory for logs
+  file:
+    path: /var/log/zookeeper
+    state: directory
+    group: hadoop
+    owner: hadoop
+
+- name: start zookeeper
+  shell: sudo -u hadoop /srv/zookeeper/bin/zkServer.sh start
+  become: vagrant

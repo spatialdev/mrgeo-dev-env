@@ -53,15 +53,24 @@
   unarchive:
     src: '/home/vagrant/{{ hadoop_archive }}'
     dest: /srv
-
-- name: Recursively chown and chmod
-  shell: (chown -R hadoop:hadoop /srv/{{ hadoop_release }} && chmod g+w -R /srv/{{ hadoop_release }})
+    owner: hadoop
+    group: hadoop
 
 - name: Create required symbolic link
   file:
     src: /srv/{{ hadoop_release }}
     dest: /srv/hadoop
     state: link
+    owner: hadoop
+    group: hadoop
+
+- name: Recursively chown and chmod
+  shell: '{{ item }}'
+  with_items:
+    - chown -R hadoop:hadoop /srv/{{ hadoop_release }}
+    - chown -R hadoop:hadoop /srv/{{ hadoop_release }}/*
+    - chown -R hadoop:hadoop /srv/hadoop
+    - chmod g+w -R /srv/{{ hadoop_release }}
 
 - name: Add env vars to hadoop .bashrc
   blockinfile:
