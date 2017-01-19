@@ -102,6 +102,29 @@
 
   - name: install Accumulo
     include: includes/accumulo.yml
+#
+#  - name: install Spark
+#    include: includes/spark.yml
+#
+#  - name: get GeoWave
+#    git:
+#      repo: https://github.com/ngageoint/geowave.git
+#      dest: /home/vagrant/geowave
+#      depth: 10
 
-  - name: install Spark
-    include: includes/spark.yml
+#  - name: Build GeoWave Accumulo Plugin
+#    shell: mvn install -P accumulo-container-singlejar
+#    args:
+#      chdir: /home/vagrant/geowave
+
+#  - name: Move jar to accumulo
+#  - name: Copy jar to accumulo
+#    copy:
+#      src: /home/vagrant/geowave/srv/accumulo/conf/examples/512MB/standalone/
+#      dest: /srv/accumulo/conf/
+#      owner: hadoop
+#      group: hadoop
+#      remote_src: yes
+
+
+# sudo su -l hadoop bash -c 'source /home/hadoop/.bashrc'

@@ -42,7 +42,6 @@
   template:
     src: /home/vagrant/shared/devops/templates/zoo.cfg.j2
     dest: /srv/zookeeper/conf/zoo.cfg
-    mode: 0644
     owner: hadoop
     group: hadoop
 
@@ -52,6 +51,15 @@
     marker: "# {mark} ANSIBLE MANAGED ZOOKEEPER BLOCK "
     content: |
       export ZOOKEEPER_HOME=/srv/zookeeper
+      export ZOO_LOG_DIR=/var/log/zookeeper
+
+- name: Add env vars to hadoop .profile
+  blockinfile:
+    dest: /home/hadoop/.profile
+    marker: "# {mark} ANSIBLE MANAGED ZOOKEEPER BLOCK "
+    content: |
+      export ZOOKEEPER_HOME=/srv/zookeeper
+      export ZOO_LOG_DIR=/var/log/zookeeper
 
 - name: Add env vars to vagrant .profile
   blockinfile:
@@ -59,16 +67,23 @@
     marker: "# {mark} ANSIBLE MANAGED ZOOKEEPER BLOCK "
     content: |
       export ZOOKEEPER_HOME=/srv/zookeeper
+      export ZOO_LOG_DIR=/var/log/zookeeper
 
 - name: source the .bashrc
   shell: (source /home/hadoop/.bashrc)
-  become: hadoop
+  become_user: hadoop
+  args:
+    executable: /bin/bash
+
+- name: source the .profile
+  shell: (source /home/hadoop/.profile)
+  become_user: hadoop
   args:
     executable: /bin/bash
 
 - name: source the .profile
   shell: (source /home/vagrant/.profile)
-  become: vagrant
+  become_user: vagrant
   args:
     executable: /bin/bash
 
@@ -79,6 +94,15 @@
     group: hadoop
     owner: hadoop
 
+#- name: Try sudo su
+#  shell: |
+#    sudo su hadoop <<EOF
+#    source /home/hadoop/.bashrc
+#    exit
+#    EOF
+#  become_user: vagrant
+
 - name: start zookeeper
-  shell: sudo -u hadoop /srv/zookeeper/bin/zkServer.sh start
-  become: vagrant
+  shell: sudo su -l hadoop bash -c '/srv/zookeeper/bin/zkServer.sh start'
+  become_user: vagrant
+

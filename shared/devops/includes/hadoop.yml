@@ -89,6 +89,23 @@
       export SPARK_HOME=/srv/spark
       export PATH=$SPARK_HOME/bin:$PATH
 
+- name: Add env vars to hadoop .profile
+  blockinfile:
+    dest: /home/hadoop/.profile
+    marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
+    content: |
+      # Set the Hadoop Related Environment variables
+      export HADOOP_HOME=/srv/hadoop
+      export PATH=$PATH:$HADOOP_HOME/bin
+      # Set the JAVA_HOME
+      export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      # Configure Hive environment
+      export HIVE_HOME=/srv/hive
+      export PATH=$PATH:$HIVE_HOME/bin
+      # Configure Spark
+      export SPARK_HOME=/srv/spark
+      export PATH=$SPARK_HOME/bin:$PATH
+
 - name:  Add JAVA_HOME to hadoop-env.sh
   lineinfile:
     dest: /srv/hadoop/etc/hadoop/hadoop-env.sh
@@ -147,23 +164,29 @@
 
 - name: source the .bashrc
   shell: (source /home/hadoop/.bashrc)
-  become: vagrant
+  become_user: vagrant
+  args:
+    executable: /bin/bash
+
+- name: source the hadoop .profile
+  shell: (source /home/hadoop/.profile)
+  become_user: hadoop
   args:
     executable: /bin/bash
 
 - name: source the .profile
   shell: (source /home/vagrant/.profile)
-  become: vagrant
+  become_user: vagrant
   args:
     executable: /bin/bash
 
 - name: start hadoop
-  shell: sudo -u hadoop /srv/hadoop/sbin/start-dfs.sh
-  become: vagrant
+  shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-dfs.sh'
+  become_user: vagrant
 
 - name: start yarn
-  shell: sudo -u hadoop /srv/hadoop/sbin/start-yarn.sh
-  become: vagrant
+  shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-yarn.sh'
+  become_user: vagrant
 
 - name: Check for tell-tale signs of namenode format
   stat:
@@ -172,11 +195,11 @@
 
 
 - name: Format the "/var/app/hadoop" directory
-  shell: sudo -u hadoop /srv/hadoop/bin/hdfs namenode -format
+  shell: sudo su -l hadoop bash -c '/srv/hadoop/bin/hdfs namenode -format'
   environment:
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
   when: hdfs_VERSION.stat.exists == False
-  become: vagrant
+  become_user: vagrant
 
 - name: Add directory for namenode files
   file:
@@ -188,13 +211,13 @@
 
 
 - name: start hadoop
-  shell: sudo -u hadoop /srv/hadoop/sbin/start-dfs.sh
-  become: vagrant
+  shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-dfs.sh'
+  become_user: vagrant
 
 - name: start yarn
-  shell: sudo -u hadoop /srv/hadoop/sbin/start-yarn.sh
-  become: vagrant
+  shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-yarn.sh'
+  become_user: vagrant
 
 - name: create a hdfs space for vagrant user
-  shell: (sudo -u hadoop /srv/hadoop/bin/hdfs dfs -mkdir -p /user/vagrant && sudo -u hadoop /srv/hadoop/bin/hdfs dfs -chown vagrant:vagrant /user/vagrant)
-  become: vagrant
+  shell: (sudo su -l hadoop bash -c '/srv/hadoop/bin/hdfs dfs -mkdir -p /user/vagrant' && sudo su -l hadoop bash -c '/srv/hadoop/bin/hdfs dfs -chown vagrant:vagrant /user/vagrant')
+  become_user: vagrant
