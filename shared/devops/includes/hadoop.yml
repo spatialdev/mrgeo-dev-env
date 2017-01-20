@@ -78,8 +78,10 @@
     marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
     content: |
       # Set the Hadoop Related Environment variables
-      export HADOOP_HOME=/srv/hadoop
+      export HADOOP_HOME=/srv/{{ hadoop_release }}
       export PATH=$PATH:$HADOOP_HOME/bin
+      export HADOOP_OPTS="$HADOOP_OPTS -XX:-PrintWarnings -Djava.net.preferIPv4Stack=true"
+      export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar
       # Set the JAVA_HOME
       export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
       # Configure Hive environment
@@ -95,8 +97,10 @@
     marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
     content: |
       # Set the Hadoop Related Environment variables
-      export HADOOP_HOME=/srv/hadoop
+      export HADOOP_HOME=/srv/{{ hadoop_release }}
       export PATH=$PATH:$HADOOP_HOME/bin
+      export HADOOP_OPTS="$HADOOP_OPTS -XX:-PrintWarnings -Djava.net.preferIPv4Stack=true"
+      export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar
       # Set the JAVA_HOME
       export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
       # Configure Hive environment
@@ -108,7 +112,7 @@
 
 - name:  Add JAVA_HOME to hadoop-env.sh
   lineinfile:
-    dest: /srv/hadoop/etc/hadoop/hadoop-env.sh
+    dest: /srv/{{ hadoop_release }}/etc/hadoop/hadoop-env.sh
     regexp: 'export JAVA_HOME=\${JAVA_HOME}'
     line: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 
@@ -118,8 +122,9 @@
     marker: "# {mark} ANSIBLE MANAGED Hadoop Java BLOCK "
     content: |
       # Set the Hadoop Related Environment variables
-      export HADOOP_HOME=/srv/hadoop
+      export HADOOP_HOME=/srv/{{ hadoop_release }}
       export PATH=$PATH:$HADOOP_HOME/bin
+      export HADOOP_OPTS="$HADOOP_OPTS -XX:-PrintWarnings -Djava.net.preferIPv4Stack=true"
       export HADOOP_STREAMING=$HADOOP_HOME/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar
       # Set the JAVA_HOME
       export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
@@ -195,7 +200,7 @@
 
 
 - name: Format the "/var/app/hadoop" directory
-  shell: sudo su -l hadoop bash -c '/srv/hadoop/bin/hdfs namenode -format'
+  shell: sudo su -l hadoop bash -c 'cd /srv/hadoop && /srv/hadoop/bin/hdfs namenode -format'
   environment:
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
   when: hdfs_VERSION.stat.exists == False

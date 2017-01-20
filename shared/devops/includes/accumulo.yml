@@ -23,7 +23,7 @@
     - chown -R hadoop:hadoop /srv/{{ accumulo_release }}
     - chown -R hadoop:hadoop /srv/{{ accumulo_release }}/*
     - chown -R hadoop:hadoop /srv/accumulo
-    - chmod g+w -R /srv/{{ accumulo_release }}
+#    - chmod g+w -R /srv/{{ accumulo_release }}
 
 
 - name: Copy conf file example
@@ -34,11 +34,6 @@
     owner: hadoop
     group: hadoop
 
-- name: make adjustment to accumulo-env.sh
-  lineinfile:
-    dest: /srv/accumulo/conf/accumulo-env.sh
-    regexp: '# export ACCUMULO_MONITOR_BIND_ALL="true"'
-    line: 'export ACCUMULO_MONITOR_BIND_ALL="true"'
 
 - name: Add env vars to hadoop .bashrc
   blockinfile:
@@ -92,6 +87,28 @@
     mode: 0644
     owner: hadoop
     group: hadoop
+
+
+- name: make adjustment to accumulo-env.sh
+  lineinfile:
+    dest: /srv/accumulo/conf/accumulo-env.sh
+    regexp: '# export ACCUMULO_MONITOR_BIND_ALL="true"'
+    line: 'export ACCUMULO_MONITOR_BIND_ALL="true"'
+
+- name: make adjustment to accumulo-env.sh
+  lineinfile:
+    dest: /srv/accumulo/conf/accumulo-env.sh
+    regexp: '# export LD_LIBRARY_PATH=\${HADOOP_PREFIX}/lib/native/\${PLATFORM}:\${LD_LIBRARY_PATH}'
+    line: 'export LD_LIBRARY_PATH=\${HADOOP_PREFIX}/lib/native/\${PLATFORM}:\${LD_LIBRARY_PATH}'
+
+- name: make adjustment to accumulo-env.sh
+  lineinfile:
+    dest: /srv/accumulo/conf/accumulo-env.sh
+    line: 'export LD_LIBRARY_PATH=$/srv/{{ hadoop_release }}/lib/native/libhadoop.so:\${LD_LIBRARY_PATH}'
+
+- name: build bin/build_native_library.sh
+  shell: sudo su -l hadoop bash -c '/srv/accumulo/bin/build_native_library.sh'
+  become_user: vagrant
 
 - name: check for previous initialization
   shell: sudo su -l hadoop bash -c 'hadoop fs -ls /accumulo/instance_id/'
