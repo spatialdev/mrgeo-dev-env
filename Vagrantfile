@@ -15,20 +15,13 @@ Vagrant.configure(2) do |config|
   config.vm.network :forwarded_port, guest: 50075, host: 50075 #
   config.vm.network :forwarded_port, guest: 50090, host: 50090 #
 
-  # HBase web UI ports
-  #config.vm.network :forwarded_port, guest: 60010, host: 60010
-  #config.vm.network :forwarded_port, guest: 16010, host: 16010
-
-  # Thrift
-  #config.vm.network :forwarded_port, guest: 9090, host: 9090
-
-  #ZooKeeper
-  #config.vm.network :forwarded_port, guest: 2181, host: 2181
+  # Accumulo Web UI port
+  config.vm.network :forwarded_port, guest: 50095, host: 50095 #
 
   config.ssh.forward_agent = true
 
   config.vm.provider "virtualbox" do |vb|
-    vb.memory = 4096
+    vb.memory = 8192
     vb.cpus = 4
     # Needed for multiple CPUs
     vb.customize ["modifyvm", :id, "--ioapic", "on"]

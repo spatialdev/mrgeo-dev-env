@@ -19,9 +19,9 @@
     zookeeper_md5: 3e8506075212c2d41030d874fcc9dcd2
     zookeeper_data_dir: /var/app/zookeeper
 
-    accumulo_archive_url: http://mirrors.sonic.net/apache/accumulo/1.8.0/accumulo-1.8.0-bin.tar.gz
-    accumulo_release: accumulo-1.8.0
-    accumulo_md5: c094d8d61ce8c0bf787fae4b54c7c49a
+    accumulo_archive_url: http://mirror.jax.hugeserver.com/apache/accumulo/1.7.2/accumulo-1.7.2-bin.tar.gz
+    accumulo_release: accumulo-1.7.2
+    accumulo_md5: de876f3f6df4a9659635378ae7df1b86
     accumulo_secret: nimbus
 
     hbase_release: 1.2.4
@@ -78,6 +78,8 @@
       - libcurl4-openssl-dev
       - python-pip
       - default-jdk
+      - maven
+
 
   - name: 'Pip installs'
     pip:
@@ -102,26 +104,28 @@
 
   - name: install Accumulo
     include: includes/accumulo.yml
-#
-#  - name: install Spark
-#    include: includes/spark.yml
+
+  - name: install Spark
+    include: includes/spark.yml
 #
 #  - name: get GeoWave
 #    git:
 #      repo: https://github.com/ngageoint/geowave.git
 #      dest: /home/vagrant/geowave
 #      depth: 10
-
+#    become_user: vagrant
+#
 #  - name: Build GeoWave Accumulo Plugin
-#    shell: mvn install -P accumulo-container-singlejar
+#    shell: mvn clean install -P accumulo-container-singlejar -DskipITs=true -DskipTests=true -Daccumulo.version=1.7.2 -Dhadoop.version=2.6.0 -Daccumulo.api=1.7
 #    args:
 #      chdir: /home/vagrant/geowave
+#      executable: /bin/bash
+#    become_user: vagrant
 
-#  - name: Move jar to accumulo
 #  - name: Copy jar to accumulo
 #    copy:
-#      src: /home/vagrant/geowave/srv/accumulo/conf/examples/512MB/standalone/
-#      dest: /srv/accumulo/conf/
+#      src: /deploy/target/geowave-deploy-0.9.4-SNAPSHOT-accumulo.jar
+#      dest: /srv/accumulo/lib/
 #      owner: hadoop
 #      group: hadoop
 #      remote_src: yes

@@ -93,16 +93,17 @@
     owner: hadoop
     group: hadoop
 
-#- name: Try sudo su
-#  shell: |
-#    sudo su hadoop <<EOF
-#    exit
-#    EOF
-#  become_user: vagrant
+- name: check for previous initialization
+  shell: sudo su -l hadoop bash -c 'hadoop fs -ls /accumulo/instance_id/'
+  ignore_errors: yes
+  become_user: vagrant
+  register: init_out
+
 
 - name: Initiate
   shell: sudo su -l hadoop bash -c '/srv/accumulo/bin/accumulo init --instance-name stratus --password lenticular'
   become_user: vagrant
+  when: '"/accumulo/instance_id/" not in init_out.stdout'
 
 - name: Start Accumulo
   shell: sudo su -l hadoop bash -c '/srv/accumulo/bin/start-all.sh'
