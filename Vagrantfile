@@ -10,6 +10,8 @@ Vagrant.configure(2) do |config|
 
   config.vm.synced_folder "shared", "/home/vagrant/shared"
 
+  config.vm.network :forwarded_port, guest: 8080, host: 8080 #
+
   # Hadoop web UI ports
   config.vm.network :forwarded_port, guest: 50070, host: 50070 #
   config.vm.network :forwarded_port, guest: 50075, host: 50075 #

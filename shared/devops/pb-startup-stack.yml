@@ -1,0 +1,30 @@
+- name: Startup various servers
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+
+  vars:
+
+
+  tasks:
+
+  - name: start hadoop
+    shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-dfs.sh'
+    become_user: vagrant
+
+  - name: start yarn
+    shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-yarn.sh'
+    become_user: vagrant
+
+  - name: start zookeeper
+    shell: sudo su -l hadoop bash -c '/srv/zookeeper/bin/zkServer.sh start'
+    become_user: vagrant
+
+  - name: Start Accumulo
+    shell: sudo su -l hadoop bash -c '/srv/accumulo/bin/start-all.sh'
+    become_user: vagrant
+
+  - name: Start Geoserver
+    shell: sudo su -l hadoop bash -c '/home/hadoop/geoserver-2.10.1/bin/startup.sh &> /dev/null &'
+    become_user: vagrant

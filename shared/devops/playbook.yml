@@ -32,103 +32,161 @@
 
 
   tasks:
-#
-#  - name: Add a directory for Ansible callback plugins
-#    file: path=/usr/share/ansible/plugins/callback state=directory
-#
-#  - name: Add module to create human readable output
-#    template:
-#      src: /home/vagrant/shared/devops/human_log.py
-#      dest: /usr/share/ansible/plugins/callback
-#
-#  - name: Add pretty-print module to Ansible
-#    blockinfile:
-#      dest: /etc/ansible/ansible.cfg
-#      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
-#      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
-#      content: |
-#        callback_plugins   = /usr/share/ansible/plugins/callback
-#
-#  - name: Prevent 'retry' file creation
-#    blockinfile:
-#      dest: /etc/ansible/ansible.cfg
-#      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
-#      insertbefore: "#retry_files_enabled = False"
-#      content: |
-#        retry_files_enabled = False
-#
-#  - name: ensure apt cache is up to date
-#    apt: update_cache=yes cache_valid_time=86400
-#
-#  - name: dist-upgrade
-#    apt: upgrade=dist cache_valid_time=86400
-#
-#  - name: Ensure required packages are installed
-#    apt: name={{item}}
-#    with_items:
-#      - git
-#      - tree
-#      - curl
-#      - build-essential
-#      - ssh
-#      - lzop
-#      - rsync
-#      - python-dev
-#      - python-setuptools
-#      - libcurl4-openssl-dev
-#      - python-pip
-#      - default-jdk
-#      - maven
-#
-#
-#  - name: 'Pip installs'
-#    pip:
-#      name: "{{ item}}"
-#    with_items:
-#      - virtualenv
-#      - virtualenvwrapper
-#      - python-dateutil
-#
-#  - name: Add aliases vagrant .profile
-#    blockinfile:
-#      dest: /home/vagrant/.profile
-#      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
-#      content: |
-#        export DOPS=/home/vagrant/shared/devops
-#
-#  - name: install Hadoop
-#    include: includes/hadoop.yml
-#
-#  - name: install Zookeeper
-#    include: includes/zookeeper.yml
-#
-#  - name: install Accumulo
-#    include: includes/accumulo.yml
+
+  - name: Add a directory for Ansible callback plugins
+    file: path=/usr/share/ansible/plugins/callback state=directory
+
+  - name: Add module to create human readable output
+    template:
+      src: /home/vagrant/shared/devops/human_log.py
+      dest: /usr/share/ansible/plugins/callback
+
+  - name: Add pretty-print module to Ansible
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
+      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
+      content: |
+        callback_plugins   = /usr/share/ansible/plugins/callback
+
+  - name: Prevent 'retry' file creation
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
+      insertbefore: "#retry_files_enabled = False"
+      content: |
+        retry_files_enabled = False
+
+  - name: ensure apt cache is up to date
+    apt: update_cache=yes cache_valid_time=86400
+
+  - name: dist-upgrade
+    apt: upgrade=dist cache_valid_time=86400
+
+  - name: Ensure required packages are installed
+    apt: name={{item}}
+    with_items:
+      - git
+      - tree
+      - curl
+      - build-essential
+      - ssh
+      - lzop
+      - rsync
+      - python-dev
+      - python-setuptools
+      - libcurl4-openssl-dev
+      - python-pip
+      - default-jdk
+      - maven
+      - gdal-bin
+      - python-gdal
+      - libopencv-dev
+      - python-opencv
+      - libgdal-java
+
+  - name: 'Pip installs'
+    pip:
+      name: "{{ item}}"
+    with_items:
+      - virtualenv
+      - virtualenvwrapper
+      - python-dateutil
+
+  - name: Add aliases vagrant .profile
+    blockinfile:
+      dest: /home/vagrant/.profile
+      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
+      content: |
+        export DOPS=/home/vagrant/shared/devops
+
+  - name: install Hadoop
+    include: includes/hadoop.yml
+
+  - name: install Zookeeper
+    include: includes/zookeeper.yml
+
+  - name: install Accumulo
+    include: includes/accumulo.yml
 
   - name: install Spark
     include: includes/spark.yml
 
-  - name: get GeoWave
+  - name: get MrGeo
     git:
-      repo: https://github.com/ngageoint/geowave.git
-      dest: /home/hadoop/geowave
+      repo: https://github.com/ngageoint/mrgeo.git
+      dest: /srv/mrgeo
       depth: 10
-    become_user: hadoop
 
-  - name: Build GeoWave Accumulo Plugin
-    shell: mvn clean install -P accumulo-container-singlejar -DskipITs=true -DskipTests=true -Daccumulo.version=1.7.2 -Dhadoop.version=2.6.0 -Daccumulo.api=1.7
+  - name: Recursively chown and chmod
+    shell: '{{ item }}'
+    with_items:
+      - chown -R hadoop:hadoop /srv/mrgeo
+      - chown -R hadoop:hadoop /srv/mrgeo/*
+      - chmod g+w -R /srv/mrgeo
+
+  - name: build MrGeo
+    shell: sudo su -l hadoop bash -c '(cd /srv/mrgeo/ && ./build apache260 -y -jv 1.8 -c /srv/hadoop/etc/hadoop)'
+    become_user: vagrant
+
+  - name: Add env vars to hadoop .bashrc
+    blockinfile:
+      dest: /home/hadoop/.bashrc
+      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+      content: |
+        # Set MrGeo Related Environment variables
+        export MRGEO_COMMON_HOME=/srv/mrgeo
+        export MRGEO_CONF_DIR=/srv/mrgeo/conf
+        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+  - name: Add env vars to hadoop .profile
+    blockinfile:
+      dest: /home/hadoop/.profile
+      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+      content: |
+        # Set MrGeo Related Environment variables
+        export MRGEO_COMMON_HOME=/srv/mrgeo
+        export MRGEO_CONF_DIR=/srv/mrgeo/conf
+        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+  - name: Add env vars to vagrant .profile
+    blockinfile:
+      dest: /home/vagrant/.profile
+      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+      content: |
+        # Set MrGeo Related Environment variables
+        export MRGEO_COMMON_HOME=/srv/mrgeo
+        export MRGEO_CONF_DIR=/srv/mrgeo/conf
+        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+  - name: source the hadoop .profile
+    shell: (source /home/hadoop/.profile)
+    become_user: hadoop
     args:
-      chdir: /home/hadoop/geowave
       executable: /bin/bash
-    become_user: hadoop
 
-  - name: Copy jar to accumulo
-    copy:
-      src: /deploy/target/geowave-deploy-0.9.4-SNAPSHOT-accumulo.jar
-      dest: /srv/accumulo/lib/
+  - name: source the vagrant .profile
+    shell: (source /home/vagrant/.profile)
+    become_user: vagrant
+    args:
+      executable: /bin/bash
+
+  - name: Create required symbolic link to MrGeo conf file
+    file:
+      src: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf
+      dest: /srv/mrgeo/conf
+      state: link
       owner: hadoop
       group: hadoop
-      remote_src: yes
 
+  - name: Creat MrGeo conf file
+    shell: cp /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf.dev /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
+    become_user: hadoop
 
-# sudo su -l hadoop bash -c 'source /home/hadoop/.bashrc'
+  - name: Replace conf file
+    template:
+      src: /home/vagrant/shared/devops/templates/mrgeo.conf.j2
+      dest: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
+      mode: 0644
+      owner: hadoop
+      group: hadoop
