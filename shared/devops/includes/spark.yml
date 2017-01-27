@@ -31,4 +31,4 @@
 - name: write Hive config file
   template:
     src: /home/vagrant/shared/devops/templates/hive-site.xml.j2
-    dest: /srv/spark-2.1.0-bin-hadoop2.6/conf/hive-site.xml
+    dest: /srv/spark/conf/hive-site.xml

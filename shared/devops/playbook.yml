@@ -6,9 +6,9 @@
 
   vars:
 
-    spark_release: spark-2.1.0-bin-hadoop2.6
-    spark_archive_url: http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.6.tgz
-    spark_md5: 'md5:18 67 65 A9 58 38 60 2E  D8 1E A4 E9 27 05 61 F8'
+    spark_release: spark-1.6.3-bin-hadoop2.6
+    spark_archive_url: http://d3kbcqa49mib13.cloudfront.net/spark-1.6.3-bin-hadoop2.6.tgz
+    spark_md5: 'md5:CE 8A 2E 75 29 AA C0 F0 17 51 94 06 17 69 DB D4'
 
     hadoop_release: hadoop-2.6.0
     hadoop_archive: '{{ hadoop_release }}.tar.gz'
@@ -32,91 +32,91 @@
 
 
   tasks:
-
-  - name: Add a directory for Ansible callback plugins
-    file: path=/usr/share/ansible/plugins/callback state=directory
-
-  - name: Add module to create human readable output
-    template:
-      src: /home/vagrant/shared/devops/human_log.py
-      dest: /usr/share/ansible/plugins/callback
-
-  - name: Add pretty-print module to Ansible
-    blockinfile:
-      dest: /etc/ansible/ansible.cfg
-      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
-      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
-      content: |
-        callback_plugins   = /usr/share/ansible/plugins/callback
-
-  - name: Prevent 'retry' file creation
-    blockinfile:
-      dest: /etc/ansible/ansible.cfg
-      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
-      insertbefore: "#retry_files_enabled = False"
-      content: |
-        retry_files_enabled = False
-
-  - name: ensure apt cache is up to date
-    apt: update_cache=yes cache_valid_time=86400
-
-  - name: dist-upgrade
-    apt: upgrade=dist cache_valid_time=86400
-
-  - name: Ensure required packages are installed
-    apt: name={{item}}
-    with_items:
-      - git
-      - tree
-      - curl
-      - build-essential
-      - ssh
-      - lzop
-      - rsync
-      - python-dev
-      - python-setuptools
-      - libcurl4-openssl-dev
-      - python-pip
-      - default-jdk
-      - maven
-      - gdal-bin
-      - python-gdal
-      - libopencv-dev
-      - python-opencv
-      - libgdal-java
-
-  - name: 'Pip installs'
-    pip:
-      name: "{{ item}}"
-    with_items:
-      - virtualenv
-      - virtualenvwrapper
-      - python-dateutil
-
-  - name: Add aliases vagrant .profile
-    blockinfile:
-      dest: /home/vagrant/.profile
-      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
-      content: |
-        export DOPS=/home/vagrant/shared/devops
-
-  - name: install Hadoop
-    include: includes/hadoop.yml
-
-  - name: install Zookeeper
-    include: includes/zookeeper.yml
-
-  - name: install Accumulo
-    include: includes/accumulo.yml
-
-  - name: install Spark
-    include: includes/spark.yml
-
-  - name: get MrGeo
-    git:
-      repo: https://github.com/ngageoint/mrgeo.git
-      dest: /srv/mrgeo
-      depth: 10
+#
+#  - name: Add a directory for Ansible callback plugins
+#    file: path=/usr/share/ansible/plugins/callback state=directory
+#
+#  - name: Add module to create human readable output
+#    template:
+#      src: /home/vagrant/shared/devops/human_log.py
+#      dest: /usr/share/ansible/plugins/callback
+#
+#  - name: Add pretty-print module to Ansible
+#    blockinfile:
+#      dest: /etc/ansible/ansible.cfg
+#      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
+#      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
+#      content: |
+#        callback_plugins   = /usr/share/ansible/plugins/callback
+#
+#  - name: Prevent 'retry' file creation
+#    blockinfile:
+#      dest: /etc/ansible/ansible.cfg
+#      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
+#      insertbefore: "#retry_files_enabled = False"
+#      content: |
+#        retry_files_enabled = False
+#
+#  - name: ensure apt cache is up to date
+#    apt: update_cache=yes cache_valid_time=86400
+#
+#  - name: dist-upgrade
+#    apt: upgrade=dist cache_valid_time=86400
+#
+#  - name: Ensure required packages are installed
+#    apt: name={{item}}
+#    with_items:
+#      - git
+#      - tree
+#      - curl
+#      - build-essential
+#      - ssh
+#      - lzop
+#      - rsync
+#      - python-dev
+#      - python-setuptools
+#      - libcurl4-openssl-dev
+#      - python-pip
+#      - default-jdk
+#      - maven
+#      - gdal-bin
+#      - python-gdal
+#      - libopencv-dev
+#      - python-opencv
+#      - libgdal-java
+#
+#  - name: 'Pip installs'
+#    pip:
+#      name: "{{ item}}"
+#    with_items:
+#      - virtualenv
+#      - virtualenvwrapper
+#      - python-dateutil
+#
+#  - name: Add aliases vagrant .profile
+#    blockinfile:
+#      dest: /home/vagrant/.profile
+#      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
+#      content: |
+#        export DOPS=/home/vagrant/shared/devops
+#
+#  - name: install Hadoop
+#    include: includes/hadoop.yml
+#
+#  - name: install Zookeeper
+#    include: includes/zookeeper.yml
+#
+#  - name: install Accumulo
+#    include: includes/accumulo.yml
+#
+#  - name: install Spark
+#    include: includes/spark.yml
+#
+#  - name: get MrGeo - the repo is huge and take a long time! don't panic
+#    git:
+#      repo: https://github.com/ngageoint/mrgeo.git
+#      dest: /srv/mrgeo
+#      depth: 10
 
   - name: Recursively chown and chmod
     shell: '{{ item }}'
@@ -179,7 +179,7 @@
       owner: hadoop
       group: hadoop
 
-  - name: Creat MrGeo conf file
+  - name: Create MrGeo conf file
     shell: cp /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf.dev /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
     become_user: hadoop
 
@@ -188,5 +188,31 @@
       src: /home/vagrant/shared/devops/templates/mrgeo.conf.j2
       dest: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
       mode: 0644
+      owner: hadoop
+      group: hadoop
+
+  - name: Create HDFS space for Spark jar
+    shell: sudo su -l hadoop bash -c 'hdfs dfs -mkdir -p /user/spark/share/lib/'
+
+  - name: Copy Spark jar to HDFS
+    shell: sudo su -l hadoop bash -c 'hdfs dfs -put /srv/spark/lib/spark-assembly-1.6.3-hadoop2.6.0.jar /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar'
+
+  - name: Add spark-defaults.conf file
+    template:
+      src: /home/vagrant/shared/devops/templates/spark-defaults.conf.j2
+      dest: /srv/spark/conf/spark-defaults.conf
+      mode: 0644
+      owner: hadoop
+      group: hadoop
+
+  - name: Add a directory for sample geotiff
+    file: path=/home/hadoop/data state=directory
+    owner: hadoop
+    group: hadoop
+
+  - name: get sample Geotiff
+    get_url:
+      url: https://s3.amazonaws.com/rdca-resources/sample-tiff/SPAM_V_agg_TA_VP_CROP_A.tif
+      dest: /home/hadoop/data
       owner: hadoop
       group: hadoop

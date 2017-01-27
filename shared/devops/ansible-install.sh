@@ -1,7 +1,7 @@
 #!/bin/bash
 
-sudo apt-get install --assume-yes software-properties-common
-sudo apt-add-repository ppa:ansible/ansible
 sudo apt-get update
-sudo apt-get install --assume-yes ansible -y > /dev/null 2>&1
+sudo apt-get install python-pip -y > /dev/null
+sudo pip install --upgrade-pip
+sudo pip install ansible==2.2.0.0
 ansible-playbook /home/vagrant/shared/devops/playbook.yml

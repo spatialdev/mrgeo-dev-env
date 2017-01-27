@@ -193,14 +193,8 @@
   shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-yarn.sh'
   become_user: vagrant
 
-- name: Check for tell-tale signs of namenode format
-  stat:
-    path: /var/app/hadoop/data/dfs/name/current/VERSION
-  register: hdfs_VERSION
-
-
 - name: Format the "/var/app/hadoop" directory
-  shell: sudo su -l hadoop bash -c 'cd /srv/hadoop && /srv/hadoop/bin/hdfs namenode -format'
+  shell: sudo su -l hadoop bash -c 'cd /srv/hadoop && /srv/hadoop/bin/hdfs namenode -format -nonInteractive'
   environment:
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
   when: hdfs_VERSION.stat.exists == False
