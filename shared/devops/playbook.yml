@@ -24,207 +24,104 @@
     accumulo_md5: de876f3f6df4a9659635378ae7df1b86
     accumulo_secret: nimbus
 
-    hbase_release: 1.2.4
-    hbase_archive: 'hbase-{{ hbase_release }}-bin.tar.gz'
-    hbase_md5: '26 CF 30 B9 FC 01 16 7B  A9 8F C6 37 E8 60 6D 5C'
-    hbase_home_dir: '/srv/hbase-{{ hbase_release }}'
-    hbase_data_dir: /var/app/hbase
+#    hbase_release: 1.2.4
+#    hbase_archive: 'hbase-{{ hbase_release }}-bin.tar.gz'
+#    hbase_md5: '26 CF 30 B9 FC 01 16 7B  A9 8F C6 37 E8 60 6D 5C'
+#    hbase_home_dir: '/srv/hbase-{{ hbase_release }}'
+#    hbase_data_dir: /var/app/hbase
 
 
   tasks:
-#
-#  - name: Add a directory for Ansible callback plugins
-#    file: path=/usr/share/ansible/plugins/callback state=directory
-#
-#  - name: Add module to create human readable output
-#    template:
-#      src: /home/vagrant/shared/devops/human_log.py
-#      dest: /usr/share/ansible/plugins/callback
-#
+
+  - name: Add a directory for Ansible callback plugins
+    file: path=/usr/share/ansible/plugins/callback state=directory
+
+  - name: Add module to create human readable output
+    template:
+      src: /home/vagrant/shared/devops/human_log.py
+      dest: /usr/share/ansible/plugins/callback
+
+  - name: Add a directory for ansible.cfg
+    file:
+      path: /etc/ansible
+      state: directory
+
+
   - name: Add ansible.cfg
     template:
       src: /home/vagrant/shared/devops/ansible.cfg
       dest: /etc/ansible/ansible.cfg
 
-#  - name: Add pretty-print module to Ansible
-#    blockinfile:
-#      dest: /etc/ansible/ansible.cfg
-#      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
-#      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
-#      content: |
-#        callback_plugins   = /usr/share/ansible/plugins/callback
-#
-#  - name: Prevent 'retry' file creation
-#    blockinfile:
-#      dest: /etc/ansible/ansible.cfg
-#      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
-#      insertbefore: "#retry_files_enabled = False"
-#      content: |
-#        retry_files_enabled = False
-#
-#  - name: ensure apt cache is up to date
-#    apt: update_cache=yes cache_valid_time=86400
-#
-#  - name: dist-upgrade
-#    apt: upgrade=dist cache_valid_time=86400
-#
-#  - name: Ensure required packages are installed
-#    apt: name={{item}}
-#    with_items:
-#      - git
-#      - tree
-#      - curl
-#      - build-essential
-#      - ssh
-#      - lzop
-#      - rsync
-#      - python-dev
-#      - python-setuptools
-#      - libcurl4-openssl-dev
-#      - python-pip
-#      - default-jdk
-#      - maven
-#      - gdal-bin
-#      - python-gdal
-#      - libopencv-dev
-#      - python-opencv
-#      - libgdal-java
-#
-#  - name: 'Pip installs'
-#    pip:
-#      name: "{{ item}}"
-#    with_items:
-#      - virtualenv
-#      - virtualenvwrapper
-#      - python-dateutil
-#
-#  - name: Add aliases vagrant .profile
-#    blockinfile:
-#      dest: /home/vagrant/.profile
-#      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
-#      content: |
-#        export DOPS=/home/vagrant/shared/devops
-#
-#  - name: install Hadoop
-#    include: includes/hadoop.yml
-#
-#  - name: install Zookeeper
-#    include: includes/zookeeper.yml
-#
-#  - name: install Accumulo
-#    include: includes/accumulo.yml
-#
-#  - name: install Spark
-#    include: includes/spark.yml
-#
-#  - name: get MrGeo - the repo is huge and take a long time! don't panic
-#    git:
-#      repo: https://github.com/ngageoint/mrgeo.git
-#      dest: /srv/mrgeo
-#      depth: 10
+  - name: Add pretty-print module to Ansible
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED CALLBACK PLUGIN BLOCK "
+      insertafter: '#callback_plugins   = /usr/share/ansible/plugins/callback'
+      content: |
+        callback_plugins   = /usr/share/ansible/plugins/callback
 
-  - name: Recursively chown and chmod
-    shell: '{{ item }}'
+  - name: Prevent 'retry' file creation
+    blockinfile:
+      dest: /etc/ansible/ansible.cfg
+      marker: "# {mark} ANSIBLE MANAGED RETRY BLOCK"
+      insertbefore: "#retry_files_enabled = False"
+      content: |
+        retry_files_enabled = False
+
+  - name: ensure apt cache is up to date
+    apt: update_cache=yes cache_valid_time=86400
+
+  - name: dist-upgrade
+    apt: upgrade=dist cache_valid_time=86400
+
+  - name: Ensure required packages are installed
+    apt: name={{item}}
     with_items:
-      - chown -R hadoop:hadoop /srv/mrgeo
-      - chown -R hadoop:hadoop /srv/mrgeo/*
-      - chmod g+w -R /srv/mrgeo
+      - git
+      - tree
+      - curl
+      - build-essential
+      - ssh
+      - lzop
+      - rsync
+      - python-dev
+      - python-setuptools
+      - libcurl4-openssl-dev
+      - python-pip
+      - default-jdk
+      - maven
+      - gdal-bin
+      - python-gdal
+      - libopencv-dev
+      - python-opencv
+      - libgdal-java
 
-  - name: build MrGeo
-    shell: sudo su -l hadoop bash -c '(cd /srv/mrgeo/ && ./build apache260 -y -jv 1.8 -c /srv/hadoop/etc/hadoop)'
-    become_user: vagrant
+  - name: 'Pip installs'
+    pip:
+      name: "{{ item}}"
+    with_items:
+      - virtualenv
+      - virtualenvwrapper
+      - python-dateutil
 
-  - name: Add env vars to hadoop .bashrc
-    blockinfile:
-      dest: /home/hadoop/.bashrc
-      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
-      content: |
-        # Set MrGeo Related Environment variables
-        export MRGEO_COMMON_HOME=/srv/mrgeo
-        export MRGEO_CONF_DIR=/srv/mrgeo/conf
-        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
-
-  - name: Add env vars to hadoop .profile
-    blockinfile:
-      dest: /home/hadoop/.profile
-      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
-      content: |
-        # Set MrGeo Related Environment variables
-        export MRGEO_COMMON_HOME=/srv/mrgeo
-        export MRGEO_CONF_DIR=/srv/mrgeo/conf
-        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
-
-  - name: Add env vars to vagrant .profile
+  - name: Add aliases vagrant .profile
     blockinfile:
       dest: /home/vagrant/.profile
-      marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+      marker: "# {mark} ANSIBLE MANAGED ALIAS BLOCK "
       content: |
-        # Set MrGeo Related Environment variables
-        export MRGEO_COMMON_HOME=/srv/mrgeo
-        export MRGEO_CONF_DIR=/srv/mrgeo/conf
-        export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+        export DOPS=/home/vagrant/shared/devops
 
-  - name: source the hadoop .profile
-    shell: (source /home/hadoop/.profile)
-    become_user: hadoop
-    args:
-      executable: /bin/bash
+  - name: install Hadoop
+    include: includes/hadoop.yml
 
-  - name: source the vagrant .profile
-    shell: (source /home/vagrant/.profile)
-    become_user: vagrant
-    args:
-      executable: /bin/bash
+  - name: install Zookeeper
+    include: includes/zookeeper.yml
 
-  - name: Create required symbolic link to MrGeo conf file
-    file:
-      src: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf
-      dest: /srv/mrgeo/conf
-      state: link
-      owner: hadoop
-      group: hadoop
+  - name: install Accumulo
+    include: includes/accumulo.yml
 
-  - name: Create MrGeo conf file
-    shell: cp /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf.dev /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
-    become_user: hadoop
+  - name: install Spark
+    include: includes/spark.yml
 
-  - name: Replace conf file
-    template:
-      src: /home/vagrant/shared/devops/templates/mrgeo.conf.j2
-      dest: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
-      mode: 0644
-      owner: hadoop
-      group: hadoop
-
-  - name: Create HDFS space for Spark jar
-    shell: sudo su -l hadoop bash -c 'hdfs dfs -mkdir -p /user/spark/share/lib/'
-
-  - name: Copy Spark jar to HDFS
-    shell: sudo su -l hadoop bash -c 'hdfs dfs -put /srv/spark/lib/spark-assembly-1.6.3-hadoop2.6.0.jar /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar'
-    become_user: vagrant
-
-  - name: Add spark-defaults.conf file
-    template:
-      src: /home/vagrant/shared/devops/templates/spark-defaults.conf.j2
-      dest: /srv/spark/conf/spark-defaults.conf
-      mode: 0644
-      owner: hadoop
-      group: hadoop
-
-  - name: Add a directory for sample geotiff
-    file:
-      path: /home/hadoop/data
-      state: directory
-      owner: hadoop
-      group: hadoop
-
-  - name: get sample Geotiff
-    get_url:
-      url: https://s3.amazonaws.com/rdca-resources/sample-tiff/SPAM_V_agg_TA_VP_CROP_A.tif
-      dest: /home/hadoop/data
-      owner: hadoop
-      group: hadoop
-
-  - name: Ingest sample GeoTiff into MrGeo
-    shell: mrgeo-cmd/src/main/scripts/mrgeo ingest -o SPAM_V_agg_TA_VP_CROP_A /home/hadoop/data/SPAM_V_agg_TA_VP_CROP_A.tif
-    become_user: hadoop
+  - name: install MrGeo and sample tiff
+    include: includes/mrgeo.yml

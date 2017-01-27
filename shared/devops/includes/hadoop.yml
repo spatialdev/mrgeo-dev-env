@@ -197,7 +197,6 @@
   shell: sudo su -l hadoop bash -c 'cd /srv/hadoop && /srv/hadoop/bin/hdfs namenode -format -nonInteractive'
   environment:
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
-  when: hdfs_VERSION.stat.exists == False
   become_user: vagrant
 
 - name: Add directory for namenode files

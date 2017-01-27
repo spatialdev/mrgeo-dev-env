@@ -1,0 +1,123 @@
+- name: get MrGeo - the repo is huge and take a long time! don't panic
+  git:
+    repo: https://github.com/ngageoint/mrgeo.git
+    dest: /srv/mrgeo
+    depth: 10
+
+- name: Recursively chown and chmod
+  shell: '{{ item }}'
+  with_items:
+    - chown -R hadoop:hadoop /srv/mrgeo
+    - chown -R hadoop:hadoop /srv/mrgeo/*
+    - chmod g+w -R /srv/mrgeo
+
+- name: build MrGeo
+  shell: sudo su -l hadoop bash -c '(cd /srv/mrgeo/ && ./build apache260 -y -jv 1.8 -Dgdal.version=1.11.3 -c /srv/hadoop/etc/hadoop)'
+  become_user: vagrant
+
+- name: Add env vars to hadoop .bashrc
+  blockinfile:
+    dest: /home/hadoop/.bashrc
+    marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+    content: |
+      # Set MrGeo Related Environment variables
+      export MRGEO_COMMON_HOME=/srv/mrgeo
+      export MRGEO_CONF_DIR=/srv/mrgeo/conf
+      export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+- name: Add env vars to hadoop .profile
+  blockinfile:
+    dest: /home/hadoop/.profile
+    marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+    content: |
+      # Set MrGeo Related Environment variables
+      export MRGEO_COMMON_HOME=/srv/mrgeo
+      export MRGEO_CONF_DIR=/srv/mrgeo/conf
+      export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+- name: Add env vars to vagrant .profile
+  blockinfile:
+    dest: /home/vagrant/.profile
+    marker: "# {mark} ANSIBLE MANAGED MRGEO BLOCK "
+    content: |
+      # Set MrGeo Related Environment variables
+      export MRGEO_COMMON_HOME=/srv/mrgeo
+      export MRGEO_CONF_DIR=/srv/mrgeo/conf
+      export HADOOP_CONF_DIR=/srv/hadoop/etc/hadoop
+
+- name: source the hadoop .profile
+  shell: (source /home/hadoop/.profile)
+  become_user: hadoop
+  args:
+    executable: /bin/bash
+
+- name: source the vagrant .profile
+  shell: (source /home/vagrant/.profile)
+  become_user: vagrant
+  args:
+    executable: /bin/bash
+
+- name: Create required symbolic link to MrGeo conf directory
+  file:
+    src: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf
+    dest: /srv/mrgeo/conf
+    state: link
+    owner: hadoop
+    group: hadoop
+
+- name: Replace conf file
+  template:
+    src: /home/vagrant/shared/devops/templates/mrgeo.conf.j2
+    dest: /srv/mrgeo/mrgeo-services/mrgeo-services-core/src/main/resources/conf/mrgeo.conf
+    mode: 0644
+    owner: hadoop
+    group: hadoop
+
+- name: Check if we need to copy jar
+  shell: sudo su -l hadoop bash -c 'if $(hdfs dfs -test -f /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar) ; then echo "true";else echo "false"; fi'
+  register: jar_exists
+  become_user: vagrant
+
+- name: Create HDFS space for Spark jar
+  shell: sudo su -l hadoop bash -c 'hdfs dfs -mkdir -p /user/spark/share/lib/'
+  become_user: vagrant
+  when: '"false" in jar_exists.stdout'
+
+- name: Copy Spark jar to HDFS
+  shell: sudo su -l hadoop bash -c 'hdfs dfs -put /srv/spark/lib/spark-assembly-1.6.3-hadoop2.6.0.jar /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar'
+  become_user: vagrant
+  when: '"false" in jar_exists.stdout'
+
+- name: Add spark-defaults.conf file
+  template:
+    src: /home/vagrant/shared/devops/templates/spark-defaults.conf.j2
+    dest: /srv/spark/conf/spark-defaults.conf
+    mode: 0644
+    owner: hadoop
+    group: hadoop
+
+- name: Add a directory for sample geotiff
+  file:
+    path: /home/hadoop/data
+    state: directory
+    owner: hadoop
+    group: hadoop
+
+- name: Check if we need to get sample tiff
+  shell: sudo su -l hadoop bash -c 'if $(hdfs dfs -test -d /mrgeo/images/SPAM_V_agg_TA_VP_CROP_A) ; then echo "true";else echo "false"; fi'
+  register: tiff_exists
+  become_user: vagrant
+
+- name: get sample Geotiff
+  get_url:
+    url: https://s3.amazonaws.com/rdca-resources/sample-tiff/SPAM_V_agg_TA_VP_CROP_A.tif
+    dest: /home/hadoop/data
+    owner: hadoop
+    group: hadoop
+  when: '"false" in tiff_exists.stdout'
+
+- name: Ingest sample GeoTiff into MrGeo
+  shell: sudo su -l hadoop bash -c '(cd /srv/mrgeo && mrgeo-cmd/src/main/scripts/mrgeo ingest -o SPAM_V_agg_TA_VP_CROP_A /home/hadoop/data/SPAM_V_agg_TA_VP_CROP_A.tif)'
+  become_user: vagrant
+  when: '"false" in tiff_exists.stdout'
+
