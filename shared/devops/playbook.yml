@@ -41,6 +41,11 @@
 #      src: /home/vagrant/shared/devops/human_log.py
 #      dest: /usr/share/ansible/plugins/callback
 #
+  - name: Add ansible.cfg
+    template:
+      src: /home/vagrant/shared/devops/ansible.cfg
+      dest: /etc/ansible/ansible.cfg
+
 #  - name: Add pretty-print module to Ansible
 #    blockinfile:
 #      dest: /etc/ansible/ansible.cfg
@@ -196,6 +201,7 @@
 
   - name: Copy Spark jar to HDFS
     shell: sudo su -l hadoop bash -c 'hdfs dfs -put /srv/spark/lib/spark-assembly-1.6.3-hadoop2.6.0.jar /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar'
+    become_user: vagrant
 
   - name: Add spark-defaults.conf file
     template:
@@ -206,9 +212,11 @@
       group: hadoop
 
   - name: Add a directory for sample geotiff
-    file: path=/home/hadoop/data state=directory
-    owner: hadoop
-    group: hadoop
+    file:
+      path: /home/hadoop/data
+      state: directory
+      owner: hadoop
+      group: hadoop
 
   - name: get sample Geotiff
     get_url:
@@ -216,3 +224,7 @@
       dest: /home/hadoop/data
       owner: hadoop
       group: hadoop
+
+  - name: Ingest sample GeoTiff into MrGeo
+    shell: mrgeo-cmd/src/main/scripts/mrgeo ingest -o SPAM_V_agg_TA_VP_CROP_A /home/hadoop/data/SPAM_V_agg_TA_VP_CROP_A.tif
+    become_user: hadoop
