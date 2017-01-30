@@ -25,6 +25,6 @@
     shell: sudo su -l hadoop bash -c '/srv/accumulo/bin/start-all.sh'
     become_user: vagrant
 
-  - name: Start Geoserver
-    shell: sudo su -l hadoop bash -c '/home/hadoop/geoserver-2.10.1/bin/startup.sh &> /dev/null &'
-    become_user: vagrant
+#  - name: Start Geoserver
+#    shell: sudo su -l hadoop bash -c '/home/hadoop/geoserver-2.10.1/bin/startup.sh &> /dev/null &'
+#    become_user: vagrant

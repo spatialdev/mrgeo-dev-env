@@ -193,11 +193,17 @@
   shell: sudo su -l hadoop bash -c '/srv/hadoop/sbin/start-yarn.sh'
   become_user: vagrant
 
+- name: Check if HDFS has data in it
+  shell: sudo su -l hadoop bash -c 'if $(hdfs dfs -test -f /user/spark/share/lib/spark-assembly-1.6.3-hadoop2.6.0.jar) ; then echo "true";else echo "false"; fi'
+  register: hdfs_exists
+  become_user: vagrant
+
 - name: Format the "/var/app/hadoop" directory
   shell: sudo su -l hadoop bash -c 'cd /srv/hadoop && /srv/hadoop/bin/hdfs namenode -format -nonInteractive'
   environment:
     JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
   become_user: vagrant
+  when: '"false" in hdfs_exists.stdout'
 
 - name: Add directory for namenode files
   file:

@@ -10,6 +10,8 @@ Vagrant.configure(2) do |config|
 
   config.vm.synced_folder "shared", "/home/vagrant/shared"
 
+  config.vm.network "private_network", ip: "192.168.50.4"
+
   config.vm.network :forwarded_port, guest: 8080, host: 8080 #
 
   # Hadoop web UI ports
@@ -27,6 +29,8 @@ Vagrant.configure(2) do |config|
     vb.cpus = 4
     # Needed for multiple CPUs
     vb.customize ["modifyvm", :id, "--ioapic", "on"]
+
+    vb.name = "localhost"
   end
 
   config.vm.provision "shell",

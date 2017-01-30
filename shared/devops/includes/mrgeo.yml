@@ -1,8 +1,14 @@
+- name: Check for built MrGeo
+  stat:
+    path:  /srv/mrgeo/mrgeo-cmd/src/main/scripts/mrgeo
+  register: mrgeo
+
 - name: get MrGeo - the repo is huge and take a long time! don't panic
   git:
     repo: https://github.com/ngageoint/mrgeo.git
     dest: /srv/mrgeo
     depth: 10
+  when: mrgeo.stat.exists === False
 
 - name: Recursively chown and chmod
   shell: '{{ item }}'
